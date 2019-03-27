@@ -19,7 +19,11 @@
 package org.eclipse.jetty.tests.distribution;
 
 import java.io.File;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jetty.client.HttpClient;
@@ -204,4 +208,58 @@ public class DistributionTests extends AbstractDistributionTest
             assertThat(response.getContentAsString(), not(containsString("<%")));
         }
     }
+
+    @Test
+    public void testSpecsWebapp() throws Exception
+    {
+        String jettyVersion = System.getProperty("jettyVersion");
+        Path jettyBase = Files.createTempDirectory( "jetty_base_");
+        Path etc = Files.createDirectories(Paths.get(jettyBase.toString(),"etc"));
+        DistributionTester distribution = DistributionTester.Builder.newInstance()
+            .jettyVersion(jettyVersion)
+            .jettyBase(jettyBase)
+            .mavenLocalRepository(System.getProperty("mavenRepoPath"))
+            .build();
+
+        String[] args1 = {
+            "--create-startd",
+            "--approve-all-licenses",
+            "--add-to-start=resources,server,http,webapp,deploy,jsp,jmx,servlet,servlets"
+        };
+
+
+        try (DistributionTester.Run run1 = distribution.start(args1))
+        {
+
+            assertTrue(run1.awaitFor(5, TimeUnit.SECONDS));
+            assertEquals(0, run1.getExitValue());
+
+            File war = distribution.resolveArtifact("org.eclipse.jetty.tests:test-spec-webapp:war:" + jettyVersion);
+            distribution.installWarFile(war, "test");
+
+            int port = distribution.freePort();
+            String[] args2 = {
+                "jetty.http.port=" + port
+            };
+
+            // add realm
+            Files.copy(Paths.get("src/test/resources/etc/my-realm.xml"),
+                       Paths.get(etc.toString(),"my-realm.xml"));
+            Files.copy(Paths.get("src/test/resources/etc/realm.properties"),
+                       Paths.get(etc.toString(),"realm.properties"));
+
+
+            try (DistributionTester.Run run2 = distribution.start(args2))
+            {
+                assertTrue(run2.awaitConsoleLogsFor("Started @", 10, TimeUnit.SECONDS));
+
+                startHttpClient();
+                ContentResponse response = client.GET("http://localhost:" + port + "/test/something");
+                assertEquals(HttpStatus.OK_200, response.getStatus());
+                assertThat(response.getContentAsString(), containsString("Hello"));
+                assertThat(response.getContentAsString(), not(containsString("<%")));
+            }
+        }
+    }
+
 }
