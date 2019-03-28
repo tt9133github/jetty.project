@@ -18,21 +18,6 @@
 
 package org.eclipse.jetty.server;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -49,7 +34,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.servlet.DispatcherType;
 import javax.servlet.MultipartConfigElement;
 import javax.servlet.ServletException;
@@ -80,6 +64,21 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class RequestTest
 {
@@ -642,6 +641,53 @@ public class RequestTest
         "Connection: close\n"+
         "\n"+
         "0123456789\n";
+
+        String responses=_connector.getResponse(request);
+        assertThat(responses,startsWith("HTTP/1.1 200"));
+    }
+
+    @Test
+    public void testContentLength_ExceedsMaxInteger() throws Exception
+    {
+        final long HUGE_LENGTH = (long) Integer.MAX_VALUE * 10L;
+
+        _handler._checker = (request, response) ->
+                request.getContentLength() == (-1) // per HttpServletRequest javadoc this must return (-1);
+             && request.getContentLengthLong() == HUGE_LENGTH;
+
+        //Send a request with encoded form content
+        String request="POST / HTTP/1.1\r\n"+
+                "Host: whatever\r\n"+
+                "Content-Type: application/octet-stream\n"+
+                "Content-Length: " + HUGE_LENGTH + "\n"+
+                "Connection: close\n"+
+                "\n"+
+                "<insert huge amount of content here>\n";
+
+        System.out.println(request);
+
+        String responses=_connector.getResponse(request);
+        assertThat(responses,startsWith("HTTP/1.1 200"));
+    }
+
+    @Test
+    public void testContentLength_ExceedsMaxLong() throws Exception
+    {
+        String HUGE_LENGTH = Long.MAX_VALUE + "0";
+
+        _handler._checker = (request, response) ->
+                request.getHeader("Content-Length").equals(HUGE_LENGTH)
+             && request.getContentLength() == (-1) // per HttpServletRequest javadoc this must return (-1);
+             && request.getContentLengthLong() == (-1); // exact behavior here not specified in Servlet javadoc
+
+        //Send a request with encoded form content
+        String request="POST / HTTP/1.1\r\n"+
+                "Host: whatever\r\n"+
+                "Content-Type: application/octet-stream\n"+
+                "Content-Length: " + HUGE_LENGTH + "\n"+
+                "Connection: close\n"+
+                "\n"+
+                "<insert huge amount of content here>\n";
 
         String responses=_connector.getResponse(request);
         assertThat(responses,startsWith("HTTP/1.1 200"));
