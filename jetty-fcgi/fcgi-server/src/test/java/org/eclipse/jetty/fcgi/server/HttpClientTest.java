@@ -52,6 +52,7 @@ import org.eclipse.jetty.toolchain.test.annotation.Slow;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.log.StacklessLogging;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class HttpClientTest extends AbstractHttpClientServerTest
@@ -504,6 +505,7 @@ public class HttpClientTest extends AbstractHttpClientServerTest
     @Test
     public void testSendToIPv6Address() throws Exception
     {
+        Assume.assumeFalse(Boolean.getBoolean("ipv6.tests.disabled"));
         start(new EmptyServerHandler());
 
         ContentResponse response = client.newRequest("[::1]", connector.getLocalPort())

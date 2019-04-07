@@ -47,6 +47,7 @@ import org.eclipse.jetty.util.B64Code;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.Promise;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -87,6 +88,7 @@ public class ConnectHandlerTest extends AbstractConnectHandlerTest
     @Test
     public void testCONNECTwithIPv6() throws Exception
     {
+        Assume.assumeFalse(Boolean.getBoolean("ipv6.tests.disabled"));
         String hostPort = "[::1]:" + serverConnector.getLocalPort();
         String request = "" +
                 "CONNECT " + hostPort + " HTTP/1.1\r\n" +
