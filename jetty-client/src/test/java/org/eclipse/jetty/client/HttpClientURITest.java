@@ -49,6 +49,7 @@ import org.eclipse.jetty.util.Fields;
 import org.eclipse.jetty.util.URIUtil;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -66,6 +67,7 @@ public class HttpClientURITest extends AbstractHttpClientServerTest
     @Test
     public void testIPv6Host() throws Exception
     {
+        Assume.assumeFalse(Boolean.getBoolean("ipv6.tests.disabled"));
         start(new EmptyServerHandler());
 
         String host = "::1";

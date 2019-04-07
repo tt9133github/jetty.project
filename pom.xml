@@ -898,9 +898,24 @@
     </profile>
     <profile>
       <id>ci</id>
-      <modules>
-        <module>aggregates/jetty-all</module>
-      </modules>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <configuration>
+                <systemProperties>
+                  <property>
+                    <name>ipv6.tests.disabled</name>
+                    <value>true</value>
+                  </property>
+                </systemProperties>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
     </profile>
     <profile>
       <id>update-version</id>
